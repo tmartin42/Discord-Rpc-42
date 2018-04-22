@@ -20,8 +20,10 @@ When you want to quit it, just write q in the prompt. If you dont do that, it wi
 
 * - [ ] Find a way to launch it without installing it
 * - [ ] Change "playing" message to working
-* - [ ] Clean disconnect when using ctrl-c and other thingys
+* - [ ] Solve Objective-C string leak
+* - [*] Clean disconnect when using ctrl-c and other thingys
 * - [ ] ~~Adopt a kitten~~
 
 **Thanks for the support !**
+
 *tmartin42*
