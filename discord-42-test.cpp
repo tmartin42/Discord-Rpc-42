@@ -6,7 +6,7 @@
 /*   By: tmartin <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2018/04/21 18:52:11 by tmartin           #+#    #+#             */
-/*   Updated: 2018/04/22 19:21:12 by tmartin          ###   ########.fr       */
+/*   Updated: 2018/04/22 19:47:29 by tmartin          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,16 +19,19 @@
 #include <sys/utsname.h>
 #include <signal.h>
 #include <cstdlib>
+#include <iostream>
 
-bool	connected = false;
+bool		debug = false;
 
 void		ctrlcHandler(int s) {
-	printf("Caught signal %d\n", s);
+	if (debug)
+		std::cout << "Caught signal " << s << std::endl;
 	exit(1);
 }
 
 void 		exitHandler(void) {
-	printf("Shutting Down...\n");
+	if (debug)
+		std::cout << "Shutting Down..." << std::endl;
 	Discord_ClearPresence();
 	sleep(2);
 	Discord_Shutdown();
@@ -45,7 +48,8 @@ static void updateDiscordPresence(time_t t)
 	bool					failed;
 
 	memset(&discordPresence, 0, sizeof(discordPresence));
-	buf = (utsname *)malloc(sizeof(utsname));
+	if (!(buf = (utsname *)malloc(sizeof(utsname))))
+		exit(0);
 	if ((login = getlogin()))
 		discordPresence.state = login;
 	else
@@ -56,7 +60,7 @@ static void updateDiscordPresence(time_t t)
 			tmpptr = strchr(buf->nodename, '.');
 			if (tmpptr) {
 				tmpptr[0] = '\0';
-				sprintf(buffer, "At: %s", buf->nodename);
+				sprintf(buffer, "%s", buf->nodename);
 				failed = false;
 				if (buf->nodename[1] == '1')
 					discordPresence.smallImageKey = "e1";
@@ -81,66 +85,49 @@ static void updateDiscordPresence(time_t t)
 	free(buf);
 }
 
-
-static int prompt(char* line, size_t size)
-{
-	int res;
-	char* nl;
-	printf("\n> ");
-	fflush(stdout);
-	res = fgets(line, (int)size, stdin) ? 1 : 0;
-	line[size - 1] = 0;
-	nl = strchr(line, '\n');
-	if (nl) {
-		*nl = 0;
-	}
-	return res;
-}
-
 static void handleDiscordReady(const DiscordUser* connectedUser)
 {
-	printf("\nDiscord: connected to user %s#%s - %s\n",
-			connectedUser->username,
-			connectedUser->discriminator,
-			connectedUser->userId);
-	connected = true;
-	
+	if (debug)
+		std::cout << "\n Discord: connected to user " << connectedUser->username << std::endl;
 }
 
 static void handleDiscordDisconnected(int errcode, const char* message)
 {
-	printf("\nDiscord: disconnected (%d: %s)\n", errcode, message);
+	if (debug)
+		std::cout << "\nDiscord: disconnected (" << errcode << ": " << message << ")" << std::endl;
 	Discord_ClearPresence();
 }
 
 static void handleDiscordError(int errcode, const char* message)
 {
-	printf("\nDiscord: error (%d: %s)\n", errcode, message);
+	if (debug)
+		std::cout << "\nDiscord: disconnected (" << errcode << ": " << message << ")" << std::endl;
 	Discord_ClearPresence();
 }
 
 static void handleDiscordJoin(const char* secret)
 {
+	if (debug)
+		std::cout << "\nDiscord: join" << std::endl;
 	printf("\nDiscord: join (%s)\n", secret);
 }
 
 static void handleDiscordSpectate(const char* secret)
 {
-	printf("\nDiscord: spectate (%s)\n", secret);
+	if (debug)
+		std::cout << "\nDiscord: spectate" << std::endl;
 }
 
 static void handleDiscordJoinRequest(const DiscordUser* request)
 {
-	printf("\nDiscord: join request from %s#%s - %s\n",
-			request->username,
-			request->discriminator,
-			request->userId);
+	if (debug)
+		std::cout << "\n Discord: join request from user " << request->username << std::endl;
 	Discord_Respond(request->userId, DISCORD_REPLY_NO);
 }
 
 
-int main(void)
-{
+static void 	initDiscordRPC(void) {
+	
 	DiscordEventHandlers handlers;
 	memset(&handlers, 0, sizeof(handlers));
 	handlers.ready = handleDiscordReady;
@@ -149,39 +136,34 @@ int main(void)
 	handlers.joinGame = handleDiscordJoin;
 	handlers.spectateGame = handleDiscordSpectate;
 	handlers.joinRequest = handleDiscordJoinRequest;
+	Discord_Initialize("437292685569556490", &handlers, 1, NULL);
+}
 
+static void 	initSignals(void) {	
 	struct sigaction sigIntHandler;
-
+	
 	sigIntHandler.sa_handler = ctrlcHandler;
 	sigemptyset(&sigIntHandler.sa_mask);
 	sigIntHandler.sa_flags = 0;
-
-
+	
 	sigaction(SIGHUP, &sigIntHandler,NULL);
 	sigaction(SIGQUIT, &sigIntHandler,NULL);
 	sigaction(SIGTERM, &sigIntHandler,NULL);
 	sigaction(SIGINT, &sigIntHandler, NULL);
-
 	std::atexit(exitHandler);
+}
 
-	Discord_Initialize("437292685569556490", &handlers, 1, NULL);
-
-	char line[512];
-	char* space;
-	bool	stop;
+int main(int ac, char **av)
+{
 	time_t t = time(0);
-	updateDiscordPresence(t);
-	while (!connected)
-	{
-		sleep(5);
-		Discord_RunCallbacks();
-		sleep(5);
-	}
-	updateDiscordPresence(t);
-	stop = false;
-	while (stop == false) {
+	
+	if (ac == 2 && av[1][0] == '-' && av[1][1] == 'd')
+		debug = true;
+	initDiscordRPC();
+	initSignals();
+	
+	while (42) {
 		sleep(10);
-
 		updateDiscordPresence(t);
 		Discord_RunCallbacks();
 	}
