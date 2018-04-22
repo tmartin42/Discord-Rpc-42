@@ -6,7 +6,7 @@
 /*   By: tmartin <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2018/04/21 18:52:11 by tmartin           #+#    #+#             */
-/*   Updated: 2018/04/22 17:27:51 by tmartin          ###   ########.fr       */
+/*   Updated: 2018/04/22 18:32:20 by tmartin          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -155,6 +155,10 @@ int main(void)
 	sigemptyset(&sigIntHandler.sa_mask);
 	sigIntHandler.sa_flags = 0;
 
+
+	sigaction(SIGHUP, &sigIntHandler,NULL);
+	sigaction(SIGQUIT, &sigIntHandler,NULL);
+	sigaction(SIGTERM, &sigIntHandler,NULL);
 	sigaction(SIGINT, &sigIntHandler, NULL);
 
 	std::atexit(exitHandler);
@@ -168,8 +172,9 @@ int main(void)
 	updateDiscordPresence(t);
 	while (!connected)
 	{
+		sleep(5);
 		Discord_RunCallbacks();
-		sleep(10);
+		sleep(5);
 	}
 	updateDiscordPresence(t);
 	stop = false;
