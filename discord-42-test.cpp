@@ -6,7 +6,7 @@
 /*   By: tmartin <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2018/04/21 18:52:11 by tmartin           #+#    #+#             */
-/*   Updated: 2018/04/22 15:51:27 by tmartin          ###   ########.fr       */
+/*   Updated: 2018/04/22 17:27:51 by tmartin          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,9 +17,23 @@
 #include "../discord-install/include/discord_register.h"
 #include "../discord-install/include/discord_rpc.h"
 #include <sys/utsname.h>
-#include <stdlib.h>
+#include <signal.h>
+#include <cstdlib>
 
 bool	connected = false;
+
+void		ctrlcHandler(int s) {
+	printf("Caught signal %d\n", s);
+	exit(1);
+}
+
+void 		exitHandler(void) {
+	printf("Shutting Down...\n");
+	Discord_ClearPresence();
+	sleep(2);
+	Discord_Shutdown();
+	sleep(2);
+}
 
 static void updateDiscordPresence(time_t t)
 {
@@ -135,10 +149,21 @@ int main(void)
 	handlers.spectateGame = handleDiscordSpectate;
 	handlers.joinRequest = handleDiscordJoinRequest;
 
+	struct sigaction sigIntHandler;
+
+	sigIntHandler.sa_handler = ctrlcHandler;
+	sigemptyset(&sigIntHandler.sa_mask);
+	sigIntHandler.sa_flags = 0;
+
+	sigaction(SIGINT, &sigIntHandler, NULL);
+
+	std::atexit(exitHandler);
+
 	Discord_Initialize("437292685569556490", &handlers, 1, NULL);
 
 	char line[512];
 	char* space;
+	bool	stop;
 	time_t t = time(0);
 	updateDiscordPresence(t);
 	while (!connected)
@@ -147,19 +172,18 @@ int main(void)
 		sleep(10);
 	}
 	updateDiscordPresence(t);
-	while (prompt(line, sizeof(line))) {
-		if (line[0]) {
-			if (line[0] == 'q') {
-				break;
+	stop = false;
+	while (stop == false) {
+		while (prompt(line, sizeof(line))) {
+			if (line[0]) {
+				if (line[0] == 'q') {
+					stop = true;
+					break;
+				}
+				updateDiscordPresence(t);
 			}
-			updateDiscordPresence(t);
+			Discord_RunCallbacks();
 		}
-		Discord_RunCallbacks();
 	}
-	printf("Shutting down...\n");
-	Discord_ClearPresence();
-	sleep(2);
-	Discord_Shutdown();
-	sleep(2);
 	return (0);
 }
