@@ -6,7 +6,7 @@
 /*   By: tmartin <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2018/04/21 18:52:11 by tmartin           #+#    #+#             */
-/*   Updated: 2018/04/22 18:32:20 by tmartin          ###   ########.fr       */
+/*   Updated: 2018/04/22 19:21:12 by tmartin          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -104,6 +104,7 @@ static void handleDiscordReady(const DiscordUser* connectedUser)
 			connectedUser->discriminator,
 			connectedUser->userId);
 	connected = true;
+	
 }
 
 static void handleDiscordDisconnected(int errcode, const char* message)
@@ -179,16 +180,10 @@ int main(void)
 	updateDiscordPresence(t);
 	stop = false;
 	while (stop == false) {
-		while (prompt(line, sizeof(line))) {
-			if (line[0]) {
-				if (line[0] == 'q') {
-					stop = true;
-					break;
-				}
-				updateDiscordPresence(t);
-			}
-			Discord_RunCallbacks();
-		}
+		sleep(10);
+
+		updateDiscordPresence(t);
+		Discord_RunCallbacks();
 	}
 	return (0);
 }
