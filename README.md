@@ -13,7 +13,7 @@
 ### Usage:
 Start the program. It takes time for it to connect to discord, (i also dont want to spam so i put a sleep() in it).
 
-When you want to quit it, just write q in the prompt. If you dont do that, it will disconnect horribly. Please dont do that.
+When you want to quit it, just press ctrl+c. If you dont do that, it will disconnect horribly. Please dont do that.
 
 ### What I want to do in the future:
 
